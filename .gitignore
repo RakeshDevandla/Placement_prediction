@@ -1,0 +1,22 @@
+# macOS
+__MACOSX/
+.DS_Store
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+# Virtual environment
+.venv/
+env/
+venv/
+# Editor
+.idea/
+*.sublime-workspace
+*.sublime-project
+# Jupyter
+.ipynb_checkpoints/
+# Build
+*.egg-info/
+dist/
+build/
