@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Placement Prediction System{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+    <h1>Placement Prediction System</h1>
+    <h2>Predict Student Placement Opportunities Using Machine Learning</h2>
+    <p>Analyze academic performance, technical skills, interview performance and other factors to predict student
+        placement outcomes.</p>
+    <div class="buttons">
+        <button class="btn" onclick="scrollToSection('#prediction')">Start Prediction</button>
+        <button class="btn secondary" onclick="scrollToSection('#about')">Learn More</button>
+    </div>
+</section>
+
+<!-- Prediction Form Section -->
+<section id="prediction" class="prediction-form">
+    <h2>Make a Prediction</h2>
+    <p style="color: #666; margin-bottom: 1.5rem;">Enter candidate details to predict placement probability</p>
+
+    <div id="errorMessage" class="error-message"></div>
+    <div id="successMessage" class="success-message"></div>
+
+    <form id="predictionForm">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="age">Age (years)</label>
+                <input type="number" id="age" name="age" min="18" max="65" required>
+            </div>
+            <div class="form-group">
+                <label for="gpa">GPA</label>
+                <input type="number" id="gpa" name="gpa" min="0" max="4" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="experience">Experience (years)</label>
+                <input type="number" id="experience" name="experience" min="0" max="50" required>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="cgpa">CGPA</label>
+                <input type="number" id="cgpa" name="cgpa" min="0" max="10" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="interview_score">Interview Score</label>
+                <input type="number" id="interview_score" name="interview_score" min="0" max="100" required>
+            </div>
+            <div class="form-group">
+                <label for="technical_skills">Technical Skills</label>
+                <select id="technical_skills" name="technical_skills" required>
+                    <option value="">Select a skill</option>
+                    <option value="Python">Python</option>
+                    <option value="Java">Java</option>
+                    <option value="C++">C++</option>
+                    <option value="JavaScript">JavaScript</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button type="submit" class="btn">Predict Placement</button>
+        </div>
+    </form>
+
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Making prediction...</p>
+    </div>
+
+    <div id="resultBox" class="result-box">
+        <h3>Prediction Result</h3>
+        <div class="result-prediction" id="resultPrediction"></div>
+        <div class="result-probability" id="resultProbability"></div>
+        <div class="result-confidence" id="resultConfidence"></div>
+        <hr style="margin: 1rem 0;">
+        <div id="candidateInfo" style="background: #f5f5f5; padding: 1rem; border-radius: 5px;"></div>
+    </div>
+</section>
+
+<!-- About Section -->
+<section id="about" class="info-section">
+    <h2>How It Works</h2>
+    <p>Our machine learning model uses advanced preprocessing techniques and multiple algorithms to predict placement
+        outcomes:</p>
+    <ul>
+        <li><strong>Feature Scaling:</strong> Normalizes numeric features for better model performance</li>
+        <li><strong>Categorical Encoding:</strong> Converts technical skills to numerical representations</li>
+        <li><strong>Missing Value Handling:</strong> Intelligently handles incomplete data</li>
+        <li><strong>Leak-Proof Pipeline:</strong> Ensures no data leakage between training and prediction</li>
+        <li><strong>Multiple Models:</strong> Ensemble of Tree-Based, Linear, and SVM models</li>
+    </ul>
+</section>
+
+<!-- Model Info Section -->
+<section class="info-section">
+    <h2>Model Details</h2>
+    <p><strong>Algorithm:</strong> Gradient Boosting + Random Forest Ensemble</p>
+    <p><strong>Accuracy:</strong> High precision placement prediction</p>
+    <p><strong>Input Features:</strong> Age, GPA, Experience, CGPA, Interview Score, Technical Skills</p>
+    <p><strong>Output:</strong> Placement Status (Placed/Not Placed) with confidence probability</p>
+</section>
+
+<script>
+    // Handle prediction form submission
+    document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Clear messages
+        document.getElementById('errorMessage').style.display = 'none';
+        document.getElementById('successMessage').style.display = 'none';
+        document.getElementById('resultBox').classList.remove('show');
+
+        // Show loading
+        document.getElementById('loading').style.display = 'block';
+
+        try {
+            const formData = {
+                age: document.getElementById('age').value,
+                gpa: document.getElementById('gpa').value,
+                experience: document.getElementById('experience').value,
+                cgpa: document.getElementById('cgpa').value,
+                interview_score: document.getElementById('interview_score').value,
+                technical_skills: document.getElementById('technical_skills').value
+            };
+
+            const response = await makeRequest('/api/predict', 'POST', formData);
+
+            if (response.success) {
+                showResult(response);
+            } else {
+                showError(response.error || 'Prediction failed');
+            }
+        } catch (error) {
+            showError('Error: ' + error.message);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    });
+
+    function showResult(response) {
+        const resultBox = document.getElementById('resultBox');
+        const prediction = response.prediction;
+        const probability = response.probability;
+        const confidence = response.confidence;
+        const candidateInfo = response.candidate_info;
+
+        // Set prediction
+        const predictionElement = document.getElementById('resultPrediction');
+        predictionElement.textContent = prediction;
+        predictionElement.classList.remove('placed', 'not-placed');
+        predictionElement.classList.add(prediction === 'Placed' ? 'placed' : 'not-placed');
+
+        // Set probability
+        const probabilityPercent = (probability * 100).toFixed(2);
+        document.getElementById('resultProbability').textContent =
+            `Confidence: ${probabilityPercent}%`;
+
+        // Set confidence badge
+        const confidenceElement = document.getElementById('resultConfidence');
+        confidenceElement.textContent = confidence + ' Confidence';
+        confidenceElement.classList.remove('high', 'low');
+        confidenceElement.classList.add(confidence.toLowerCase());
+
+        // Set candidate info
+        const infoHTML = Object.entries(candidateInfo)
+            .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
+            .join('<br>');
+        document.getElementById('candidateInfo').innerHTML = infoHTML;
+
+        // Show result
+        resultBox.classList.add('show');
+        resultBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function showError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        document.getElementById('errorMessage').style.display = 'block';
+    }
+
+    function scrollToSection(selector) {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    async function makeRequest(endpoint, method = 'GET', data = null) {
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+
+        if (data && method !== 'GET') {
+            options.body = JSON.stringify(data);
+        }
+
+        const response = await fetch(endpoint, options);
+        return await response.json();
+    }
+</script>
+
+{% endblock %}
+
+
+
+
+<section class="section">
+
+
+    <h2>About the System</h2>
+
+
+    <p>
+        The Placement Prediction System is a machine-learning-based
+        web application designed to analyze student information and
+        predict placement outcomes.
+    </p>
+
+
+    <p>
+        The system helps students understand their placement
+        opportunities and helps placement officers analyze
+        student performance.
+    </p>
+
+
+</section>
+
+
+
+
+<section class="section">
+
+
+    <h2>Key Features</h2>
+
+
+    <div class="cards">
+
+
+        <div class="card">
+            <h3>📂 Dataset</h3>
+            <p>Upload and analyze placement datasets.</p>
+        </div>
+
+
+        <div class="card">
+            <h3>🔧 Preprocessing</h3>
+            <p>Clean missing values, encode data and scale features.</p>
+        </div>
+
+
+        <div class="card">
+            <h3>📊 Visualization</h3>
+            <p>Analyze placement data using graphs and charts.</p>
+        </div>
+
+
+        <div class="card">
+            <h3>🤖 ML Models</h3>
+            <p>Train and compare machine learning algorithms.</p>
+        </div>
+
+
+        <div class="card">
+            <h3>🎯 Prediction</h3>
+            <p>Predict an individual student's placement.</p>
+        </div>
+
+
+        <div class="card">
+            <h3>📋 Reports</h3>
+            <p>View and download placement prediction results.</p>
+        </div>
+
+
+    </div>
+
+
+</section>
+
+
+
+
+<section class="section workflow">
+
+
+    <h2>How the System Works</h2>
+
+
+    <div class="flow">
+
+
+        <span>Student Data</span>
+        <b>→</b>
+
+
+        <span>Preprocessing</span>
+        <b>→</b>
+
+
+        <span>ML Model</span>
+        <b>→</b>
+
+
+        <span>Prediction</span>
+        <b>→</b>
+
+
+        <span>Report</span>
+
+
+    </div>
+
+
+</section>
+
+
+
+
+<section class="cta">
+
+
+    <h2>Ready to Predict Placement?</h2>
+
+
+    <a href="/prediction" class="btn">
+        Predict Placement
+    </a>
+
+
+</section>
+
+
+{% endblock %}
