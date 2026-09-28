@@ -1,7 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
 
 
 
@@ -11,7 +10,7 @@ from pathlib import Path
 
 
 print("1. Load the Dataset")
-file_path = Path(__file__).resolve().parent.parent / 'dataset' / 'placement_predict_50K_Raw.csv'
+file_path = '/Users/kundan/Desktop/Machine Learning/placement_prediction/dataset/placement_predict_50K_Raw.csv'
 
 
 try:
